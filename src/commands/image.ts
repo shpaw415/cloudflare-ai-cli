@@ -1,7 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { envAuth, requireAuth, type Auth } from "../lib/config";
+import { envAuth, type Auth } from "../lib/config";
+import { getValidAuth } from "../lib/session";
 import { runImage } from "../lib/backends";
 
 export async function runImageCommand(args: string[]): Promise<void> {
@@ -39,7 +40,7 @@ export async function runImageCommand(args: string[]): Promise<void> {
     }
     auth = fromEnv;
   } else {
-    auth = requireAuth();
+    auth = await getValidAuth();
   }
 
   if (values.backend) {

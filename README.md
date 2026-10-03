@@ -23,11 +23,33 @@ cf-ai ask coder "Explain TCP fast open in one paragraph"
 
 ## Login
 
-`cf-ai login` prompts for everything (token input is hidden) or takes flags:
+`cf-ai login` opens your browser for Cloudflare OAuth — no copy-paste. It waits on a
+local callback (`http://localhost:8976/oauth/callback`), exchanges the code via PKCE,
+auto-selects your account (or prompts if you have several), and stores OAuth credentials.
+The access token auto-refreshes whenever it expires, and `logout` revokes it server-side.
+
+```sh
+cf-ai login --backend gateway --gateway home-ai
+cf-ai login --backend workers-ai
+```
+
+Flags: `--browser` (force browser flow), `--account <id>` (skip account selection),
+`--backend`, `--gateway`.
+
+### Remote / SSH machines
+
+`--device` uses the RFC 8628 device flow — no tunnel, no callback server. The CLI
+prints a URL and a code; open the URL in a browser on any machine, approve, and the
+CLI polls until you do:
+
+```sh
+cf-ai login --device --backend workers-ai
+```
+
+Paste-a-token mode still works for scripts/CI:
 
 ```sh
 cf-ai login --backend gateway --account <ACCOUNT_ID> --gateway home-ai --token <CF_API_TOKEN>
-cf-ai login --backend workers-ai --account <ACCOUNT_ID> --token <CF_API_TOKEN>
 ```
 
 - **gateway** — routes through AI Gateway's OpenAI-compatible endpoint. Model IDs use the `provider/name` format (`grok/grok-4.5`, `workers-ai/@cf/...`). Default gateway ID: `home-ai`.

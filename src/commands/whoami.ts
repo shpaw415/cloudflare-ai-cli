@@ -10,5 +10,7 @@ export async function runWhoami(): Promise<void> {
   console.log(`backend:  ${auth.backend}`);
   console.log(`account:  ${auth.accountId}`);
   if (auth.gatewayId) console.log(`gateway:  ${auth.gatewayId}`);
+  console.log(`login:    ${auth.oauth ? "browser (OAuth)" : "API token"}`);
+  if (auth.oauth) console.log(`expires:  ${auth.oauth.expiresAt} (auto-refreshes on use)`);
   console.log(`token:    ${maskToken(auth.token)}`);
 }

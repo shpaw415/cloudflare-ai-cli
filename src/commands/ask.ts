@@ -1,7 +1,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { envAuth, loadAgents, requireAuth, type Auth } from "../lib/config";
+import { envAuth, loadAgents, type Auth } from "../lib/config";
+import { getValidAuth } from "../lib/session";
 import { chat, runImage } from "../lib/backends";
 
 export async function runAsk(args: string[]): Promise<void> {
@@ -51,7 +52,7 @@ export async function runAsk(args: string[]): Promise<void> {
     }
     auth = fromEnv;
   } else {
-    auth = requireAuth();
+    auth = await getValidAuth();
   }
 
   const model = values.model?.trim() || profile.model;

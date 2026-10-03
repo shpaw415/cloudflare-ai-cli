@@ -11,6 +11,11 @@ export type Auth = {
   accountId: string;
   gatewayId?: string;
   token: string;
+  oauth?: {
+    refreshToken: string;
+    expiresAt: string;
+    scopes?: string[];
+  };
 };
 
 export type AgentProfile = {

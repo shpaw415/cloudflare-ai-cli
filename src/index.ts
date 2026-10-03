@@ -11,7 +11,7 @@ const VERSION = "0.1.0";
 const HELP = `cf-ai — one-shot AI prompts via Cloudflare AI Gateway or Workers AI
 
 Usage:
-  cf-ai login [--backend gateway|workers-ai] [--account <id>] [--gateway <id>] [--token <t>]
+  cf-ai login [--browser] [--device] [--backend gateway|workers-ai] [--account <id>] [--gateway <id>] [--token <t>]
   cf-ai logout
   cf-ai whoami
   cf-ai agent add <name> --model <model> [--kind chat|image] [--backend gateway|workers-ai] [--system <text>]
@@ -35,6 +35,12 @@ Image:
 Config:
   ~/.config/cf-ai/auth.json    credentials (chmod 600)
   ~/.config/cf-ai/agents.json  agent profiles
+
+Login:
+  cf-ai login opens a browser for Cloudflare OAuth (no copy-paste); the access token
+  auto-refreshes. Use --token to paste an API token instead (scripts/CI).
+  On a remote/SSH machine without a browser, use --device: it prints a URL + code,
+  you approve from any browser, and the CLI polls until you do.
 
 Env overrides (with --env): CF_AI_ACCOUNT_ID, CF_AI_TOKEN, CF_AI_BACKEND, CF_AI_GATEWAY_ID
 
