@@ -1,0 +1,17 @@
+{
+  "name": "cloudflare-ai-worker-cli",
+  "version": "0.1.0",
+  "description": "Bun CLI for one-shot prompts against Cloudflare AI Gateway and Workers AI with named agent profiles",
+  "type": "module",
+  "bin": {
+    "cf-ai": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}
