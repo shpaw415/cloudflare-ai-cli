@@ -3,6 +3,21 @@
   "version": "0.1.0",
   "description": "Bun CLI for one-shot prompts against Cloudflare AI Gateway and Workers AI with named agent profiles",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shpaw415/cloudflare-ai-cli.git"
+  },
+  "keywords": [
+    "cloudflare",
+    "ai-gateway",
+    "workers-ai",
+    "cli",
+    "bun"
+  ],
+  "license": "MIT",
+  "files": [
+    "src"
+  ],
   "bin": {
     "cf-ai": "./src/index.ts"
   },
