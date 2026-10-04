@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { envAuth, loadAgents, type Auth } from "../lib/config";
 import { getValidAuth } from "../lib/session";
-import { chat, runImage } from "../lib/backends";
+import { audioExtFor, chat, runImage, runTts } from "../lib/backends";
 
 export async function runAsk(args: string[]): Promise<void> {
   const { values, positionals } = parseArgs({
@@ -13,6 +13,8 @@ export async function runAsk(args: string[]): Promise<void> {
       system: { type: "string" },
       temperature: { type: "string" },
       "max-tokens": { type: "string" },
+      speaker: { type: "string" },
+      lang: { type: "string" },
       out: { type: "string", short: "o" },
       base64: { type: "boolean", default: false },
       json: { type: "boolean", default: false },
@@ -89,6 +91,30 @@ export async function runAsk(args: string[]): Promise<void> {
   }
 
   const effectiveAuth = profile.backend ? { ...auth, backend: profile.backend } : auth;
+
+  if (profile.kind === "tts") {
+    const { bytes, contentType } = await runTts({
+      auth: effectiveAuth,
+      model,
+      text: prompt,
+      speaker: values.speaker?.trim().toLowerCase() || profile.speaker,
+      lang: values.lang?.trim().toLowerCase() || profile.lang,
+    });
+    if (values.json) {
+      console.error("Error: --json is not supported for tts agents (the API returns raw audio).");
+      process.exit(1);
+    }
+    if (values.base64) {
+      process.stdout.write(Buffer.from(bytes).toString("base64"));
+      return;
+    }
+    const out = values.out ?? `cf-ai-${Date.now()}${audioExtFor(contentType, bytes)}`;
+    const abs = resolve(out);
+    mkdirSync(dirname(abs), { recursive: true });
+    writeFileSync(abs, bytes);
+    console.log(`Saved audio to ${abs} (${bytes.length} bytes${contentType ? `, ${contentType}` : ""})`);
+    return;
+  }
 
   if (profile.kind === "image") {
     const { base64, raw } = await runImage({ auth: effectiveAuth, model, prompt });

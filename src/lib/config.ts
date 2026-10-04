@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 export type Backend = "gateway" | "workers-ai";
 
-export type Kind = "chat" | "image";
+export type Kind = "chat" | "image" | "tts";
 
 export type Auth = {
   backend: Backend;
@@ -26,6 +26,8 @@ export type AgentProfile = {
   system?: string;
   temperature?: number;
   maxTokens?: number;
+  speaker?: string;
+  lang?: string;
 };
 
 export type AgentsFile = Record<string, AgentProfile>;

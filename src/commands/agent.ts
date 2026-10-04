@@ -9,7 +9,7 @@ import {
 } from "../lib/config";
 
 const NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
-const KINDS: Kind[] = ["chat", "image"];
+const KINDS: Kind[] = ["chat", "image", "tts"];
 
 function parseBackend(value: string): Backend | null {
   const v = value.trim().toLowerCase();
@@ -30,7 +30,7 @@ export async function runAgent(args: string[]): Promise<void> {
       return agentRemove(rest);
     default:
       console.error("Usage: cf-ai agent <add|list|get|remove> [name] [options]");
-      console.error("  add <name> --model <model> [--backend gateway|workers-ai] [--system <text>] [--temperature <n>] [--max-tokens <n>]");
+      console.error("  add <name> --model <model> [--kind chat|image|tts] [--backend gateway|workers-ai] [--system <text>] [--temperature <n>] [--max-tokens <n>] [--speaker <name>] [--lang <code>]");
       console.error("  list");
       console.error("  get <name>");
       console.error("  remove <name>");
@@ -48,6 +48,8 @@ async function agentAdd(args: string[]): Promise<void> {
       system: { type: "string" },
       temperature: { type: "string" },
       "max-tokens": { type: "string" },
+      speaker: { type: "string" },
+      lang: { type: "string" },
     },
     allowPositionals: true,
   });
@@ -108,12 +110,14 @@ async function agentAdd(args: string[]): Promise<void> {
   if (kind) profile.kind = kind;
   if (backend) profile.backend = backend;
   if (values.system !== undefined && values.system !== "") profile.system = values.system;
+  if (values.speaker !== undefined && values.speaker !== "") profile.speaker = values.speaker.trim().toLowerCase();
+  if (values.lang !== undefined && values.lang !== "") profile.lang = values.lang.trim().toLowerCase();
   if (temperature !== undefined) profile.temperature = temperature;
   if (maxTokens !== undefined) profile.maxTokens = maxTokens;
   agents[name] = profile;
   saveAgents(agents);
 
-  console.log(`${existing ? "Updated" : "Created"} agent "${name}": model=${model}${kind ? ` kind=${kind}` : ""}${backend ? ` backend=${backend}` : ""}`);
+  console.log(`${existing ? "Updated" : "Created"} agent "${name}": model=${model}${kind ? ` kind=${kind}` : ""}${backend ? ` backend=${backend}` : ""}${profile.speaker ? ` speaker=${profile.speaker}` : ""}${profile.lang ? ` lang=${profile.lang}` : ""}`);
 }
 
 function agentList(): void {

@@ -5,6 +5,7 @@ import { runWhoami } from "./commands/whoami";
 import { runAgent } from "./commands/agent";
 import { runAsk } from "./commands/ask";
 import { runImageCommand } from "./commands/image";
+import { runTtsCommand } from "./commands/tts";
 
 const VERSION = "0.1.0";
 
@@ -14,14 +15,16 @@ Usage:
   cf-ai login [--browser] [--device] [--backend gateway|workers-ai] [--account <id>] [--gateway <id>] [--token <t>]
   cf-ai logout
   cf-ai whoami
-  cf-ai agent add <name> --model <model> [--kind chat|image] [--backend gateway|workers-ai] [--system <text>]
-                              [--temperature <n>] [--max-tokens <n>]
+  cf-ai agent add <name> --model <model> [--kind chat|image|tts] [--backend gateway|workers-ai] [--system <text>]
+                              [--temperature <n>] [--max-tokens <n>] [--speaker <name>]
   cf-ai agent list
   cf-ai agent get <name>
   cf-ai agent remove <name>
   cf-ai ask <agent> <prompt...> [--model <m>] [--system <s>] [--temperature <n>]
-                [--max-tokens <n>] [-o out.png] [--base64] [--json] [--env]
+                [--max-tokens <n>] [--speaker <name>] [-o out] [--base64] [--json] [--env]
   cf-ai image "<prompt...>" --model <model> [-o out.png] [--base64] [--backend gateway|workers-ai] [--json] [--env]
+  cf-ai tts "<text...>" --model <model> [--speaker <name>] [--lang <code>] [--encoding <enc>] [--container <c>]
+                        [-o out.mp3] [--base64] [--backend gateway|workers-ai] [--env]
 
 Backends:
   gateway      AI Gateway OpenAI-compatible endpoint (model: provider/name, e.g. grok/grok-4.5)
@@ -29,8 +32,15 @@ Backends:
 
 Image:
   image agents (kind=image) and the image command call the Workers AI run endpoint and save
-  the generated PNG, e.g. --model @cf/black-forest-labs/flux-2-klein-9b.
+  the generated image, e.g. --model @cf/black-forest-labs/flux-2-klein-9b.
   Output modes: -o file.png saves; --base64 prints the raw base64 (pipeable); --json dumps the API response.
+
+TTS:
+  tts agents (kind=tts) and the tts command call the Workers AI run endpoint and save the
+  generated audio, e.g. --model @cf/deepgram/aura-1 (Deepgram Aura, English-only; speakers:
+  angus, asteria, arcas, orion, orpheus, athena, luna, zeus, perseus, helios, hera, stella)
+  or --model @cf/myshell-ai/melotts --lang fr (multi-lingual: en, fr, es, ...).
+  The file extension is picked from the response content type / magic bytes (default .mp3).
 
 Config:
   ~/.config/cf-ai/auth.json    credentials (chmod 600)
@@ -52,7 +62,12 @@ Examples:
   cf-ai ask quick "Write a haiku about caches" --temperature 0.8
   cf-ai agent add art --kind image --model @cf/black-forest-labs/flux-2-klein-9b
   cf-ai ask art "a neon koi swimming through clouds" -o koi.png
-  cf-ai image "sunset over a server rack" --model @cf/black-forest-labs/flux-2-klein-9b -o rack.png`;
+  cf-ai image "sunset over a server rack" --model @cf/black-forest-labs/flux-2-klein-9b -o rack.png
+  cf-ai agent add speak --kind tts --model @cf/deepgram/aura-1 --speaker luna
+  cf-ai ask speak "Deploy went green. Nice work." -o done.mp3
+  cf-ai tts "Hello world" --model @cf/deepgram/aura-1 --speaker orion -o hello.mp3
+  cf-ai agent add frvoice --kind tts --model @cf/myshell-ai/melotts --lang fr
+  cf-ai ask frvoice "Le déploiement est terminé, à bientôt!" -o done-fr.wav`;
 
 async function main(): Promise<void> {
   const [cmd, ...rest] = process.argv.slice(2);
@@ -69,6 +84,8 @@ async function main(): Promise<void> {
       return await runAsk(rest);
     case "image":
       return await runImageCommand(rest);
+    case "tts":
+      return await runTtsCommand(rest);
     case "help":
     case "--help":
     case "-h":
@@ -88,9 +105,16 @@ async function main(): Promise<void> {
   }
 }
 
+process.stdout?.on?.("error", (err: NodeJS.ErrnoException) => {
+  if (err.code === "EPIPE") process.exit(0);
+});
+
 try {
   await main();
 } catch (err) {
+  if (err instanceof Error && (err as NodeJS.ErrnoException).code === "EPIPE") {
+    process.exit(0);
+  }
   console.error(`error: ${err instanceof Error ? err.message : String(err)}`);
   process.exit(1);
 }
