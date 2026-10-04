@@ -112,6 +112,13 @@ cf-ai ask <agent> <prompt...> [--model <m>] [--system <s>] [--temperature <n>] [
 CF_AI_ACCOUNT_ID=xxx CF_AI_TOKEN=yyy cf-ai ask coder "hi" --env
 ```
 
+## Agent skill
+
+This repo ships a reusable agent skill at [`skills/cf-ai/SKILL.md`](skills/cf-ai/SKILL.md)
+(compatible with Claude Code, opencode, and other SKILL.md harnesses) that teaches AI
+agents how to install, authenticate, and drive `cf-ai` — including model ID formats,
+agent profiles, and image generation.
+
 ## Notes
 
 - Requires a Cloudflare API token; the gateway path works with BYOK/Unified Billing tokens, the Workers AI path with a Workers AI (Read + Edit) token.

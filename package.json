@@ -16,7 +16,8 @@
   ],
   "license": "MIT",
   "files": [
-    "src"
+    "src",
+    "skills"
   ],
   "bin": {
     "cf-ai": "./src/index.ts"

@@ -98,48 +98,73 @@ export async function runImage(opts: ImageOptions): Promise<ImageResult> {
       ? `https://gateway.ai.cloudflare.com/v1/${opts.auth.accountId}/${opts.auth.gatewayId ?? "home-ai"}/workers-ai/${opts.model}`
       : `https://api.cloudflare.com/client/v4/accounts/${opts.auth.accountId}/ai/run/${opts.model}`;
 
-  let res: Response;
-  try {
-    res = await fetch(url, {
+  const inputs: Record<string, unknown> = { prompt: opts.prompt };
+  const attempts: Array<() => RequestInit> = [
+    () => ({
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${opts.auth.token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ prompt: opts.prompt }),
-    });
-  } catch (err) {
-    throw new Error(`Network error calling ${url}: ${err instanceof Error ? err.message : String(err)}`);
-  }
+      headers: { ...authHeaders(opts.auth), "Content-Type": "application/json" },
+      body: JSON.stringify(inputs),
+    }),
+    () => ({
+      method: "POST",
+      headers: { ...authHeaders(opts.auth), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        multipart: { body: inputs, contentType: "application/json" },
+      }),
+    }),
+    () => {
+      const form = new FormData();
+      form.append("prompt", opts.prompt);
+      return { method: "POST", headers: authHeaders(opts.auth), body: form };
+    },
+  ];
 
-  const text = await res.text();
-  let json: any = null;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = null;
-  }
+  let lastError = "";
+  for (let i = 0; i < attempts.length; i++) {
+    let res: Response;
+    try {
+      res = await fetch(url, attempts[i]());
+    } catch (err) {
+      throw new Error(`Network error calling ${url}: ${err instanceof Error ? err.message : String(err)}`);
+    }
 
-  if (!res.ok) {
-    const e = json?.error;
-    const message =
-      (typeof e === "string" ? e : undefined) ??
-      (Array.isArray(e) ? e[0]?.message : undefined) ??
-      (!Array.isArray(e) && e?.message ? e.message : undefined) ??
-      json?.errors?.[0]?.message ??
-      json?.messages?.[0]?.message ??
-      json?.message ??
-      (text ? text.slice(0, 500) : res.statusText);
-    throw new Error(`API error ${res.status}: ${message}`);
-  }
+    const text = await res.text();
+    let json: any = null;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
 
-  if (json === null) {
-    throw new Error(`Unexpected non-JSON response: ${text.slice(0, 500)}`);
-  }
+    if (!res.ok) {
+      const e = json?.error;
+      lastError =
+        (typeof e === "string" ? e : undefined) ??
+        (Array.isArray(e) ? e[0]?.message : undefined) ??
+        (!Array.isArray(e) && e?.message ? e.message : undefined) ??
+        json?.errors?.[0]?.message ??
+        json?.messages?.[0]?.message ??
+        json?.message ??
+        (text ? text.slice(0, 500) : res.statusText);
+      if (res.status === 400 && /multipart/i.test(lastError) && i < attempts.length - 1) {
+        continue;
+      }
+      throw new Error(`API error ${res.status}: ${lastError}`);
+    }
 
-  const base64 = json?.result?.image ?? json?.image;
-  if (typeof base64 !== "string" || base64 === "") {
-    throw new Error(`Unexpected response shape: ${JSON.stringify(json).slice(0, 500)}`);
+    if (json === null) {
+      throw new Error(`Unexpected non-JSON response: ${text.slice(0, 500)}`);
+    }
+
+    const base64 = json?.result?.image ?? json?.image;
+    if (typeof base64 !== "string" || base64 === "") {
+      throw new Error(`Unexpected response shape: ${JSON.stringify(json).slice(0, 500)}`);
+    }
+    return { base64, raw: json };
   }
-  return { base64, raw: json };
+  throw new Error(`API error 400: ${lastError}`);
+}
+
+function authHeaders(auth: Auth): Record<string, string> {
+  return { Authorization: `Bearer ${auth.token}` };
 }
